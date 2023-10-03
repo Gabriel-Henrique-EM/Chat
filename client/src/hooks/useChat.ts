@@ -1,56 +1,47 @@
 import { useState, useEffect } from 'react'
-import io from 'socket.io-client';
+import { socket } from '../socket/conexao';
 
 export const useChat = () => {
-    const socket = io('http://192.168.1.159:3000');
-    //const [socket, setSocket] = useState<any>();
+    const [socketInstance] = useState(socket);
     const [username, setUsername] = useState('');
     const [message, setMessage] = useState('');
     const [chatMessages, setChatMessages] = useState<any[]>([]);
     const [users, setUsers] = useState([]);
 
-    // useEffect(() => {
-    //     const newSocket = io('http://192.168.1.159:3000');
-    //     setSocket(newSocket);
-
-    //     return () => {
-    //         newSocket.disconnect();
-    //     };
-    // }, []);
-
     useEffect(() => {
-        socket.on('chat-message', (data: any) => {
-            alert(data)
-            setChatMessages((prevMessages) => [...prevMessages, data]);
-        });
+        if (socketInstance) {
 
-        if (socket) {
+            socketInstance.on('chat-message', (data: any) => {
+                setChatMessages((prevMessages) => [...prevMessages, data]);
+            });
 
-            socket.on('user-list', (users: any) => {
+            socketInstance.on('user-list', (users: any) => {
                 setUsers(users);
             });
 
-            socket.on('user-connected', (data: any) => {
+            socketInstance.on('user-connected', (data: any) => {
                 const message = `${data.username} entrou no chat.`;
                 setChatMessages((prevMessages) => [...prevMessages, message]);
             });
 
-            socket.on('user-disconnected', (socketId: any) => {
+            socketInstance.on('user-disconnected', (socketId: any) => {
                 const message = `${users[socketId]} saiu do chat.`;
                 setChatMessages((prevMessages) => [...prevMessages, message]);
             });
         }
-    }, [socket, users]);
+    }, [socketInstance, users]);
 
-    const handleLogin = () => {
+    const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const { nomeUser } = event.currentTarget
         if (username.trim() !== '') {
-            socket.emit('user-login', username);
+            socketInstance.emit('user-login', nomeUser.value);
         }
     };
 
     const handleSendMessage = () => {
         if (message.trim() !== '') {
-            socket.emit('chat-message', message);
+            socketInstance.emit('chat-message', message);
             setMessage('');
         }
     };
